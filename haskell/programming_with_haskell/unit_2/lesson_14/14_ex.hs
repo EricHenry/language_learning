@@ -1,3 +1,4 @@
+
 class Describable a where
     describe :: a -> String
 
@@ -72,7 +73,7 @@ data Number = One | Two | Three
     deriving (Enum)
 
 instance Eq Number where
-    (==) n1 n2 = ([fromEnum n1) == (fromEnum n2)
+    (==) n1 n2 = (fromEnum n1) == (fromEnum n2)
 
 instance Ord Number where
     compare n1 n2 = compare (fromEnum n1) (fromEnum n2)
@@ -92,4 +93,4 @@ class (Eq a, Enum a) => Die a where
     roll :: Int -> a
 
 instance Die FiveSidedDie where
-    roll n = toEnum (n 'mod' 5)
+    roll n = toEnum (n `mod` 5)
