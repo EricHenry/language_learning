@@ -82,7 +82,7 @@ fs.readdir(process.cwd(), function (err, files) {
                 fs.readFile(__dirname + '/' + filename, 'utf8', function (err, data) {
                     console.log('');
                     console.log('\033[90' + data.replace(/(.*)/g, '    $1') + '\033[39m');
-                })
+                });
             }
         }
     }
