@@ -111,7 +111,7 @@ instance Monoid Color where
 -- Refactor these types and make instances of Semigroup and Monoid
 
 -- Events
-newtype Events = Events [String]
+data Events = Events [String]
 
 instance Semigroup Events where
     (<>) (Events e1) (Events e2) = Events combined
@@ -124,7 +124,7 @@ instance Monoid Events where
     mappend = (<>)
 
 -- Probs
-newtype Probs = Probs [Double]
+data Probs = Probs [Double]
 
 instance Semigroup Probs where
     (<>) (Probs p1) (Probs p2) = Probs combined
