@@ -12,6 +12,8 @@ const universe = Universe.new();
 const width = universe.width();
 const height = universe.height();
 
+console.log(universe);
+
 // Give the canvas room for all of our cells and a 1px border
 // around each of them
 const canvas = document.getElementById("game-of-life-canvas");
@@ -38,7 +40,7 @@ const drawCells = () => {
                 ? DEAD_COLOR
                 : ALIVE_COLOR;
 
-            ctx.fillRext(
+            ctx.fillRect(
                 col * (CELL_SIZE + 1) + 1,
                 row * (CELL_SIZE + 1) + 1,
                 CELL_SIZE,

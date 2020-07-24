@@ -31,15 +31,8 @@ impl Universe {
         let width = 64;
         let height = 64;
 
-        let cells = (0..width * height)
-            .map(|i| {
-                if i % 2 == 0 || i % 7 == 0 {
-                    Cell::Alive
-                } else {
-                    Cell::Dead
-                }
-            })
-            .collect();
+        let cells = single_space_ship_init(height, width);
+        //let cells = interesting_init(height, width);
 
         Universe {
             width,
@@ -117,6 +110,39 @@ impl Universe {
         }
         count
     }
+}
+
+fn interesting_init(height: u32, width: u32) -> Vec<Cell> {
+    let cells = (0..width * height)
+        .map(|i| {
+            if i % 2 == 0 || i % 7 == 0 {
+                Cell::Alive
+            } else {
+                Cell::Dead
+            }
+        })
+        .collect();
+
+    cells
+}
+
+fn single_space_ship_init(height: u32, width: u32) -> Vec<Cell> {
+    let cells = (0..width * height)
+        .map(|i| {
+            if i == 1
+                || i == width * 1 + 3
+                || i == width * 2 + 1
+                || i == width * 2 + 2
+                || i == width * 2 + 3
+            {
+                Cell::Alive
+            } else {
+                Cell::Dead
+            }
+        })
+        .collect();
+
+    cells
 }
 
 // Like Implementing a Type Class
