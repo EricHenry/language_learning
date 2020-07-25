@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/csv"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -25,7 +26,10 @@ func correctAnsers(as []Answer) int {
 }
 
 func main() {
-	csvFile, err := os.Open("problems.csv")
+	loc := flag.String("loc", "problems.csv", "The location of the csv file, where the first column is the question and the second column is the answer")
+	flag.Parse()
+
+	csvFile, err := os.Open(*loc)
 	defer csvFile.Close()
 	reader := csv.NewReader(bufio.NewReader(csvFile))
 	if err != nil {
