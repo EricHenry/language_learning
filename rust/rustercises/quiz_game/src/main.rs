@@ -1,26 +1,25 @@
-use std::fmt;
 use std::fs::File;
-use std::io::{self};
+use std::io::{self, Write};
 use std::sync::{mpsc, Arc, Mutex};
-use std::thread;
 use std::time::Duration;
 use std::vec::Vec;
 
 extern crate clap;
 use clap::{App, Arg};
 
+#[derive(Clone, Debug)]
 struct Problem {
     question: String,
     answer: String,
 }
 
+#[derive(Clone, Debug)]
 struct Answer {
     expected: String,
     actual: String,
 }
 
 enum GameState {
-    TimeUp,
     Complete,
 }
 
@@ -75,6 +74,7 @@ fn main() -> std::io::Result<()> {
             _ => None,
         })
         .collect();
+    let num_problems = problems.len();
 
     println!("Welcome to the Quiz Game!");
     println!(
@@ -95,49 +95,37 @@ fn main() -> std::io::Result<()> {
         }
     }
 
-    println!("problems: {:?}", problems);
-    // create a channel for communication
-    let (tx, rx) = mpsc::channel();
-    // clone the transmitter
-    let tx1 = mpsc::Sender::clone(&tx);
+    // create a channel for communication of game state
+    let (state_tx, state_rx) = mpsc::channel();
     let answers: Arc<Mutex<Vec<Answer>>> = Arc::new(Mutex::new(Vec::new()));
-
-    // timer thread, keeps track of the game time
-    std::thread::spawn(move || {
-        thread::sleep(Duration::from_secs(game_time));
-        tx.send(GameState::TimeUp)
-    });
-
-    // main game loop
     let ans = Arc::clone(&answers);
     std::thread::spawn(move || {
         for p in problems.iter() {
-            let mut ans = ans.lock().unwrap();
-            println!("{}?", p.question);
+            println!("{}", p.question);
             let mut guess = String::new();
             io::stdin()
                 .read_line(&mut guess)
                 .expect("Failed to read guess");
-            ans.push(Answer {
+            let answer = Answer {
                 expected: p.answer.clone(),
                 actual: guess.trim().to_string(),
-            });
+            };
+            ans.lock().unwrap().push(answer);
         }
-        tx1.send(GameState::Complete)
+        state_tx.send(GameState::Complete).unwrap();
     });
 
-    for received in rx {
-        match received {
-            GameState::TimeUp => {
-                println!("\nYour time is up!");
-                break;
-            }
-            GameState::Complete => {
-                println!("\nYou answered all the questions!");
-                break;
-            }
+    match state_rx.recv_timeout(Duration::from_secs(game_time)) {
+        Ok(GameState::Complete) => {
+            io::stdout().flush().unwrap();
+            println!("\nYou answered all the questions!");
         }
-    }
+        Err(_) => {
+            io::stdout().flush().unwrap();
+            println!("\nYour time is up!");
+        }
+    };
+
     let answers = answers.lock().unwrap();
     let correct_answers: Vec<bool> = answers
         .iter()
@@ -149,47 +137,11 @@ fn main() -> std::io::Result<()> {
             }
         })
         .collect();
+
     println!(
         "you got {} answers correct out of {}",
         correct_answers.len(),
-        answers.len()
+        num_problems
     );
     Ok(())
-}
-
-impl fmt::Display for Problem {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "Problem ( question: {}, answer: {} )",
-            self.question, self.answer
-        )?;
-        Ok(())
-    }
-}
-impl fmt::Debug for Problem {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Problem")
-            .field("question", &self.question)
-            .field("answer", &self.answer)
-            .finish()
-    }
-}
-impl fmt::Display for Answer {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "Answer ( expected: {}, actual: {} )",
-            self.expected, self.actual
-        )?;
-        Ok(())
-    }
-}
-impl fmt::Debug for Answer {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Answer")
-            .field("expected", &self.expected)
-            .field("actual", &self.actual)
-            .finish()
-    }
 }
