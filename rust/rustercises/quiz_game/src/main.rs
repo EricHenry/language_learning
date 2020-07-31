@@ -1,5 +1,4 @@
-use std::fs::File;
-use std::io::{self, Write};
+use std::io::{self};
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 use std::vec::Vec;
@@ -56,15 +55,19 @@ fn main() -> std::io::Result<()> {
         .expect("game time should be a number");
 
     // open file
-    let file = File::open(location)?;
     // Build the CSV reader and iterate over each record.
-    let mut rdr = csv::Reader::from_reader(file);
+    let mut rdr = csv::ReaderBuilder::new()
+        .has_headers(false) // important will ignore the first line of CSV file if we do not set to false
+        .from_path(location)?;
     // transform the csv records into problems.
     let problems: Vec<Problem> = rdr
         .records()
-        .filter_map(|r| match r {
-            Ok(record) => Some(record),
-            _ => None,
+        .filter_map(|r| {
+            println!("debug: {:?}", r);
+            match r {
+                Ok(record) => Some(record),
+                _ => None,
+            }
         })
         .filter_map(|x| match (x.get(0), x.get(1)) {
             (Some(question), Some(answer)) => Some(Problem {
@@ -99,16 +102,17 @@ fn main() -> std::io::Result<()> {
     let (state_tx, state_rx) = mpsc::channel();
     let answers: Arc<Mutex<Vec<Answer>>> = Arc::new(Mutex::new(Vec::new()));
     let ans = Arc::clone(&answers);
+    // spint up a thread to handle questions / answers
     std::thread::spawn(move || {
         for p in problems.iter() {
-            println!("{}", p.question);
+            println!("{}?", p.question);
             let mut guess = String::new();
             io::stdin()
                 .read_line(&mut guess)
                 .expect("Failed to read guess");
             let answer = Answer {
-                expected: p.answer.clone(),
-                actual: guess.trim().to_string(),
+                expected: p.answer.clone().to_lowercase().trim().to_string(),
+                actual: guess.trim().to_lowercase().to_string(),
             };
             ans.lock().unwrap().push(answer);
         }
@@ -116,20 +120,15 @@ fn main() -> std::io::Result<()> {
     });
 
     match state_rx.recv_timeout(Duration::from_secs(game_time)) {
-        Ok(GameState::Complete) => {
-            io::stdout().flush().unwrap();
-            println!("\nYou answered all the questions!");
-        }
-        Err(_) => {
-            io::stdout().flush().unwrap();
-            println!("\nYour time is up!");
-        }
+        Ok(GameState::Complete) => println!("\nYou answered all the questions!"),
+        Err(_) => println!("\nYour time is up!"),
     };
 
     let answers = answers.lock().unwrap();
     let correct_answers: Vec<bool> = answers
         .iter()
         .filter_map(|a| {
+            println!("debug {:?}", a);
             if a.expected == a.actual {
                 Some(true)
             } else {
